@@ -78,11 +78,6 @@ cp -r skills/pydantic-evals ~/.claude/skills/
 │   └── pydantic-evals/
 │       ├── SKILL.md              # Main skill documentation
 │       └── references/           # Evaluator examples and guides
-├── exampleCode/
-│   ├── pydanticAIcodeExamples.py # Core agent patterns
-│   ├── logfireExample.py         # Observability patterns
-│   ├── openrouterexample.py      # Multi-model provider
-│   └── PydanticEvalDoc/          # Complete evaluation examples
 └── tests/                        # Comprehensive test suite
 ```
 
@@ -98,7 +93,7 @@ uv run pytest tests/ -v --ignore=tests/integration/
 uv run pytest tests/integration/ -v
 
 # Run with coverage
-uv run pytest tests/ --cov=skills --cov=exampleCode
+uv run pytest tests/ --cov=skills
 ```
 
 ### Code Quality
@@ -111,7 +106,7 @@ uv run ruff format .
 uv run ruff check .
 
 # Type checking
-uv run mypy skills/ exampleCode/
+uv run mypy skills/
 ```
 
 ## Core Principles

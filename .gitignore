@@ -4,6 +4,10 @@
 !.env.example
 .claude/
 
+# Local example code (not shared)
+exampleCode/
+tests/example_code/
+
 # Python
 __pycache__/
 *.py[cod]
