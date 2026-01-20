@@ -9,6 +9,7 @@ Production-ready **Claude Code skills** for building type-safe AI agents with **
 
 ## Why Use These Skills?
 
+- **✅ All examples are tested** - Every code example runs in CI. No broken snippets, no outdated syntax—guaranteed working code
 - **Battle-tested patterns** - Real-world implementations, not toy examples
 - **Type-safe by design** - Full Pydantic validation for inputs and outputs
 - **Multi-model support** - Works with OpenAI, Anthropic, OpenRouter, and more
@@ -102,6 +103,8 @@ cp -r skills/pydantic-evals ~/.claude/skills/
 
 ### Running Tests
 
+All skill examples are covered by unit tests to ensure every code pattern works correctly. Tests run automatically on every PR via GitHub Actions.
+
 ```bash
 # Run all mocked tests (CI-safe, no API keys needed)
 uv run pytest tests/ -v --ignore=tests/integration/
@@ -112,6 +115,11 @@ uv run pytest tests/integration/ -v
 # Run with coverage
 uv run pytest tests/ --cov=skills
 ```
+
+**Test coverage includes:**
+- All 12 reference files in `pydantic-ai-agents`
+- All evaluator examples in `pydantic-evals`
+- Both mocked tests (fast, CI-safe) and real API integration tests
 
 ### Code Quality
 
