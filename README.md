@@ -9,7 +9,7 @@ Production-ready **Claude Code skills** for building type-safe AI agents with **
 
 ## Why Use These Skills?
 
-- **✅ All examples tested against real LLMs** - 18 integration tests validate every pattern with Claude Haiku 4.5 via OpenRouter. No broken snippets—guaranteed working code
+- **✅ All examples tested against real LLMs** - 32 integration tests validate every pattern with Claude Haiku 4.5 via OpenRouter. No broken snippets—guaranteed working code
 - **Battle-tested patterns** - Real-world implementations, not toy examples
 - **Type-safe by design** - Full Pydantic validation for inputs and outputs
 - **Multi-model support** - Works with OpenAI, Anthropic, OpenRouter, and more
@@ -119,7 +119,9 @@ uv run pytest tests/ --cov=skills
 **Test coverage includes:**
 - All 12 reference files in `pydantic-ai-agents` (mocked unit tests)
 - All evaluator examples in `pydantic-evals` (mocked unit tests)
-- **18 integration tests** against real LLMs via OpenRouter covering:
+- **32 integration tests** against real LLMs via OpenRouter covering:
+
+  **pydantic-ai-agents (18 tests):**
   - Structured outputs & validators
   - Dependency injection & system prompts
   - Tool calling (single & multiple tools)
@@ -127,6 +129,13 @@ uv run pytest tests/ --cov=skills
   - Conversation history
   - Model settings (temperature, max_tokens, usage tracking)
   - Multi-agent orchestration (sequential, parallel, routing)
+
+  **pydantic-evals (14 tests):**
+  - Dataset creation, serialization, and evaluation
+  - Custom evaluators (time range validation, message conciseness)
+  - Evaluation workflow with assertions
+  - Model comparison patterns
+  - LLM structured outputs (success/error responses, union types)
 
 ### Code Quality
 
