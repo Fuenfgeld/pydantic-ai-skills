@@ -1,18 +1,16 @@
 """
-Integration tests for Dataset operations from pydantic-evals.
+Integration tests for 02_generate_dataset.py - Dataset Generation.
 
-Tests Dataset creation, manipulation, and serialization patterns.
-Corresponds to: skills/pydantic-evals/references/examples/add_custom_evaluators.py
+Tests Dataset creation and structure patterns.
+Corresponds to: skills/pydantic-evals/references/examples/generate_dataset.py
 """
 
 import os
-import tempfile
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Optional
 
 import pytest
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import AwareDatetime, BaseModel
 from typing_extensions import TypedDict
 
 pytestmark = [
@@ -24,7 +22,6 @@ pytestmark = [
 ]
 
 
-# Models for the dataset
 class TimeRangeSuccess(BaseModel):
     """Successful time range response."""
 
@@ -48,12 +45,12 @@ class TimeRangeInputs(TypedDict):
 
 @pytest.mark.asyncio
 async def test_create_dataset_with_cases():
-    """Test creating a Dataset with test cases."""
+    """Test creating a Dataset with test cases - mirrors generate_dataset pattern."""
     from pydantic_evals import Case, Dataset
 
     now = datetime.now(timezone.utc)
 
-    # Create test cases
+    # Create test cases like generate_dataset.py produces
     cases = [
         Case(
             name="last_week",
@@ -71,7 +68,6 @@ async def test_create_dataset_with_cases():
         ),
     ]
 
-    # Create dataset
     dataset = Dataset[TimeRangeInputs, TimeRangeSuccess | TimeRangeError, None](
         cases=cases
     )
@@ -83,7 +79,7 @@ async def test_create_dataset_with_cases():
 
 @pytest.mark.asyncio
 async def test_dataset_serialization():
-    """Test Dataset can be serialized to JSON and round-tripped."""
+    """Test Dataset can be serialized - mirrors to_file pattern."""
     from pydantic_evals import Case, Dataset
 
     now = datetime.now(timezone.utc)
@@ -104,51 +100,11 @@ async def test_dataset_serialization():
         cases=cases
     )
 
-    # Test model serialization (JSON round-trip)
+    # Test model serialization (JSON round-trip like to_file would do)
     json_data = dataset.model_dump_json()
     assert "yesterday" in json_data
 
-    # Verify we can reconstruct from dict
+    # Verify structure
     data = dataset.model_dump()
     assert len(data["cases"]) == 1
     assert data["cases"][0]["name"] == "yesterday"
-
-
-@pytest.mark.asyncio
-async def test_evaluate_dataset_with_agent(openrouter_model):
-    """Test running evaluation on a dataset with a real agent."""
-    from pydantic_ai import Agent
-    from pydantic_evals import Case, Dataset
-
-    now = datetime.now(timezone.utc)
-
-    # Create a simple agent for the test
-    agent = Agent(
-        model=openrouter_model,
-        output_type=TimeRangeSuccess,
-        system_prompt="Parse time ranges. Be precise with timestamps.",
-    )
-
-    # Create a minimal dataset
-    cases = [
-        Case(
-            name="test_case",
-            inputs=TimeRangeInputs(prompt="last 24 hours", now=now),
-        ),
-    ]
-
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
-
-    # Define the task function
-    async def parse_time_range(inputs: TimeRangeInputs) -> TimeRangeSuccess:
-        result = await agent.run(
-            f"Parse '{inputs['prompt']}' relative to {inputs['now'].isoformat()}. "
-            f"Use {inputs['now'].isoformat()} as max_timestamp."
-        )
-        return result.output
-
-    # Run evaluation
-    report = await dataset.evaluate(parse_time_range)
-
-    assert report is not None
-    assert len(report.cases) == 1
