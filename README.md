@@ -1,31 +1,48 @@
-# Pydantic AI Skills
+# Pydantic AI Skills for Claude Code
 
-Claude Code skills for building and evaluating Pydantic AI agents. These skills provide comprehensive reference documentation and examples for AI agent development.
+[![CI](https://github.com/Fuenfgeld/pydantic-ai-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/Fuenfgeld/pydantic-ai-skills/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Pydantic AI](https://img.shields.io/badge/Pydantic%20AI-1.44+-green.svg)](https://ai.pydantic.dev/)
+
+Production-ready **Claude Code skills** for building type-safe AI agents with **Pydantic AI**. Comprehensive reference implementations covering dependency injection, tool calling, structured outputs, streaming, multi-agent orchestration, and LLM evaluation patterns.
+
+## Why Use These Skills?
+
+- **Battle-tested patterns** - Real-world implementations, not toy examples
+- **Type-safe by design** - Full Pydantic validation for inputs and outputs
+- **Multi-model support** - Works with OpenAI, Anthropic, OpenRouter, and more
+- **Evaluation-driven** - Built-in testing patterns for AI agent quality assurance
+- **Production-ready** - Includes observability with Logfire integration
 
 ## Skills Included
 
-### 1. pydantic-ai-agents
+### 1. pydantic-ai-agents — Building AI Agents
 
-Reference skill for building Pydantic AI agents with best practices covering:
+Complete reference for building production AI agents with Pydantic AI:
 
-- **Dependencies** - Dependency injection patterns for state management
-- **System Prompts** - Dynamic, context-aware prompt engineering
-- **Tools** - Function calling with proper context handling
-- **Validators** - Structured output validation with Pydantic models
-- **OpenRouter** - Multi-model access through unified API
-- **Logfire** - Debugging and observability integration
-- **Streaming** - Real-time response streaming
-- **Multi-Agent** - Orchestrating multiple specialized agents
-- **Conversation History** - Persistent memory across turns
+| Pattern | Description |
+|---------|-------------|
+| **Dependency Injection** | Type-safe state management with dataclasses |
+| **System Prompts** | Dynamic, context-aware prompt engineering |
+| **Tool Calling** | Function tools with proper context handling |
+| **Structured Outputs** | Pydantic model validation for LLM responses |
+| **OpenRouter Integration** | Multi-model access (GPT-4, Claude, Llama, etc.) |
+| **Logfire Observability** | Debugging, tracing, and monitoring |
+| **Response Streaming** | Real-time token streaming |
+| **Multi-Agent Systems** | Orchestrating specialized agent teams |
+| **Conversation Memory** | Persistent history across turns |
 
-### 2. pydantic-evals
+### 2. pydantic-evals — Testing AI Agents
 
-Reference skill for testing and evaluating AI agents with:
+Reference for evaluation-driven AI development:
 
-- **Datasets** - Type-safe test case collections
-- **Evaluators** - Deterministic, LLM-as-Judge, custom, and span-based
-- **Integration** - Seamless Pydantic AI and Logfire integration
-- **Best Practices** - Evaluation-driven development workflows
+| Feature | Description |
+|---------|-------------|
+| **Type-Safe Datasets** | Structured test case collections |
+| **Multiple Evaluators** | Deterministic, LLM-as-Judge, custom, span-based |
+| **Logfire Integration** | Trace-aware evaluation metrics |
+| **Best Practices** | Evaluation-driven development (EDD) workflows |
 
 ## Installation
 
@@ -109,6 +126,16 @@ uv run ruff check .
 uv run mypy skills/
 ```
 
+## Use Cases
+
+These skills help you build:
+
+- **Chatbots & Assistants** - Customer support, internal tools, personal assistants
+- **Data Processing Agents** - ETL pipelines, document analysis, data extraction
+- **Code Generation** - AI-powered development tools and code review
+- **Research Agents** - Information retrieval, summarization, analysis
+- **Workflow Automation** - Multi-step task orchestration with LLMs
+
 ## Core Principles
 
 This project follows:
@@ -116,7 +143,7 @@ This project follows:
 - **TDD** - Test-Driven Development
 - **KISS** - Keep It Simple, Stupid
 - **SOLID** - Clean, maintainable architecture
-- **EDD** - Evaluation-Driven Development
+- **EDD** - Evaluation-Driven Development for AI quality
 
 ## Contributing
 
@@ -130,9 +157,14 @@ This project follows:
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Resources
+## Related Projects & Resources
 
-- [Pydantic AI Documentation](https://ai.pydantic.dev/)
-- [Pydantic Evals Documentation](https://ai.pydantic.dev/evals/)
-- [Logfire Documentation](https://logfire.pydantic.dev/)
-- [Claude Code Skills](https://docs.anthropic.com/en/docs/claude-code/skills)
+- [Pydantic AI](https://ai.pydantic.dev/) - The AI agent framework this skill teaches
+- [Pydantic Evals](https://ai.pydantic.dev/evals/) - Evaluation framework for AI agents
+- [Logfire](https://logfire.pydantic.dev/) - Observability platform for Python
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/) - AI coding assistant
+- [OpenRouter](https://openrouter.ai/) - Unified API for multiple LLM providers
+
+## Keywords
+
+`pydantic-ai` `ai-agents` `llm` `claude-code` `evaluation` `testing` `python` `structured-output` `tool-calling` `multi-agent` `openrouter` `logfire` `dependency-injection` `type-safe`
