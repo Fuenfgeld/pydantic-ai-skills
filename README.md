@@ -136,15 +136,6 @@ These skills help you build:
 - **Research Agents** - Information retrieval, summarization, analysis
 - **Workflow Automation** - Multi-step task orchestration with LLMs
 
-## Core Principles
-
-This project follows:
-
-- **TDD** - Test-Driven Development
-- **KISS** - Keep It Simple, Stupid
-- **SOLID** - Clean, maintainable architecture
-- **EDD** - Evaluation-Driven Development for AI quality
-
 ## Contributing
 
 1. Fork the repository
