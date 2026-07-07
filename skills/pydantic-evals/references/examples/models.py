@@ -23,19 +23,19 @@ class TimeRangeBuilderSuccess(BaseModel, use_attribute_docstrings=True):
 
     def __str__(self):
         readable_min_timestamp = self.min_timestamp_with_offset.strftime(
-            '%A, %B %d, %Y %H:%M:%S %Z'
+            "%A, %B %d, %Y %H:%M:%S %Z"
         )
         readable_max_timestamp = self.max_timestamp_with_offset.strftime(
-            '%A, %B %d, %Y %H:%M:%S %Z'
+            "%A, %B %d, %Y %H:%M:%S %Z"
         )
         lines = [
-            'TimeRangeBuilderSuccess:',
-            f'* min_timestamp_with_offset: {readable_min_timestamp}',
-            f'* max_timestamp_with_offset: {readable_max_timestamp}',
+            "TimeRangeBuilderSuccess:",
+            f"* min_timestamp_with_offset: {readable_min_timestamp}",
+            f"* max_timestamp_with_offset: {readable_max_timestamp}",
         ]
         if self.explanation is not None:
-            lines.append(f'* explanation: {self.explanation}')
-        return '\n'.join(lines)
+            lines.append(f"* explanation: {self.explanation}")
+        return "\n".join(lines)
 
 
 class TimeRangeBuilderError(BaseModel):
@@ -44,7 +44,7 @@ class TimeRangeBuilderError(BaseModel):
     error_message: str
 
     def __str__(self):
-        return f'TimeRangeBuilderError:\n* {self.error_message}'
+        return f"TimeRangeBuilderError:\n* {self.error_message}"
 
 
 TimeRangeResponse = TimeRangeBuilderSuccess | TimeRangeBuilderError

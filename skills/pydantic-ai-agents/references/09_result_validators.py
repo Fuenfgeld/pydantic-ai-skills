@@ -5,25 +5,22 @@ This file demonstrates how to use @agent.output_validator and ModelRetry
 to validate agent outputs and automatically retry on validation failures.
 """
 
-import os
 import asyncio
+import os
+from dataclasses import dataclass
+
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
-from pydantic_ai import Agent, RunContext, ModelRetry
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai import Agent, ModelRetry, RunContext
+from pydantic_ai.models.openrouter import OpenRouterModel
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 load_dotenv()
 
-# Create OpenRouter provider
-provider = OpenAIProvider(
-    api_key=os.getenv('OPENROUTER_API_KEY'),
-    base_url='https://openrouter.ai/api/v1'
-)
-
-model = OpenAIChatModel(
-    model_name='openai/gpt-4o-mini',
-    provider=provider
+# OpenRouter has first-class support since Pydantic AI v2
+model = OpenRouterModel(
+    "openai/gpt-5.2",
+    provider=OpenRouterProvider(api_key=os.getenv("OPENROUTER_API_KEY", "your-openrouter-api-key")),
 )
 
 
@@ -31,17 +28,19 @@ model = OpenAIChatModel(
 # 1. BASIC RESULT VALIDATOR
 # ============================================================================
 
+
 class PersonInfo(BaseModel):
     """Structured person information with validation."""
+
     name: str = Field(min_length=1)
     age: int = Field(ge=0, le=150)
     email: str
 
-    @field_validator('email')
+    @field_validator("email")
     @classmethod
     def validate_email_format(cls, v: str) -> str:
-        if '@' not in v or '.' not in v.split('@')[-1]:
-            raise ValueError('Invalid email format')
+        if "@" not in v or "." not in v.split("@")[-1]:
+            raise ValueError("Invalid email format")
         return v.lower()
 
 
@@ -51,8 +50,8 @@ person_agent = Agent(
     model=model,
     output_type=PersonInfo,
     retries=3,  # Retry up to 3 times on validation errors
-    system_prompt="""You extract person information from text.
-    Return valid data: name (non-empty), age (0-150), email (valid format)."""
+    instructions="""You extract person information from text.
+    Return valid data: name (non-empty), age (0-150), email (valid format).""",
 )
 
 
@@ -79,15 +78,11 @@ async def validate_person_result(ctx: RunContext, result: PersonInfo) -> PersonI
     """
     # Example: Business rule - age must be 18+ for adult profiles
     if result.age < 18:
-        raise ModelRetry(
-            "The person must be 18 or older. Please extract adult information only."
-        )
+        raise ModelRetry("The person must be 18 or older. Please extract adult information only.")
 
     # Example: Check for placeholder data
-    if result.name.lower() in ['test', 'john doe', 'jane doe']:
-        raise ModelRetry(
-            "Please extract the actual name, not a placeholder."
-        )
+    if result.name.lower() in ["test", "john doe", "jane doe"]:
+        raise ModelRetry("Please extract the actual name, not a placeholder.")
 
     return result
 
@@ -96,12 +91,11 @@ async def validate_person_result(ctx: RunContext, result: PersonInfo) -> PersonI
 # 2. RESULT VALIDATOR WITH CONTEXT
 # ============================================================================
 
-from dataclasses import dataclass
-
 
 @dataclass
 class ValidationDeps:
     """Dependencies for validation."""
+
     allowed_domains: list[str]
     min_age: int = 18
 
@@ -111,15 +105,12 @@ domain_agent = Agent(
     output_type=PersonInfo,
     deps_type=ValidationDeps,
     retries=2,
-    system_prompt="Extract person information from the given text."
+    instructions="Extract person information from the given text.",
 )
 
 
 @domain_agent.output_validator
-async def validate_with_deps(
-    ctx: RunContext[ValidationDeps],
-    result: PersonInfo
-) -> PersonInfo:
+async def validate_with_deps(ctx: RunContext[ValidationDeps], result: PersonInfo) -> PersonInfo:
     """
     Validator that uses dependencies for context-aware validation.
 
@@ -127,17 +118,13 @@ async def validate_with_deps(
     """
     # Check age against configurable minimum
     if result.age < ctx.deps.min_age:
-        raise ModelRetry(
-            f"Person must be at least {ctx.deps.min_age} years old."
-        )
+        raise ModelRetry(f"Person must be at least {ctx.deps.min_age} years old.")
 
     # Check email domain against allowed list
-    email_domain = result.email.split('@')[-1]
+    email_domain = result.email.split("@")[-1]
     if ctx.deps.allowed_domains and email_domain not in ctx.deps.allowed_domains:
         allowed = ", ".join(ctx.deps.allowed_domains)
-        raise ModelRetry(
-            f"Email must be from allowed domains: {allowed}"
-        )
+        raise ModelRetry(f"Email must be from allowed domains: {allowed}")
 
     return result
 
@@ -146,8 +133,10 @@ async def validate_with_deps(
 # 3. MULTIPLE VALIDATORS (CHAINED)
 # ============================================================================
 
+
 class ContentReview(BaseModel):
     """Content review result."""
+
     content: str
     rating: int = Field(ge=1, le=5)
     is_appropriate: bool
@@ -157,7 +146,7 @@ review_agent = Agent(
     model=model,
     output_type=ContentReview,
     retries=3,
-    system_prompt="Review the content and rate it 1-5."
+    instructions="Review the content and rate it 1-5.",
 )
 
 
@@ -165,9 +154,7 @@ review_agent = Agent(
 async def check_rating_consistency(ctx: RunContext, result: ContentReview) -> ContentReview:
     """First validator: Check rating consistency with appropriateness."""
     if not result.is_appropriate and result.rating > 2:
-        raise ModelRetry(
-            "Inappropriate content should not have a rating higher than 2."
-        )
+        raise ModelRetry("Inappropriate content should not have a rating higher than 2.")
     return result
 
 
@@ -175,9 +162,7 @@ async def check_rating_consistency(ctx: RunContext, result: ContentReview) -> Co
 async def check_content_length(ctx: RunContext, result: ContentReview) -> ContentReview:
     """Second validator: Ensure content is substantive."""
     if len(result.content.strip()) < 10:
-        raise ModelRetry(
-            "Content review must be at least 10 characters long."
-        )
+        raise ModelRetry("Content review must be at least 10 characters long.")
     return result
 
 
@@ -196,24 +181,16 @@ async def main():
     # Example 1: Basic validation
     print("=== Basic Result Validator ===")
     try:
-        result = await person_agent.run(
-            "John Smith, age 25, email: john.smith@example.com"
-        )
+        result = await person_agent.run("John Smith, age 25, email: john.smith@example.com")
         print(f"Extracted: {result.output}")
     except Exception as e:
         print(f"Validation failed after retries: {e}")
 
     # Example 2: Validation with dependencies
     print("\n=== Validator with Dependencies ===")
-    deps = ValidationDeps(
-        allowed_domains=["company.com", "partner.org"],
-        min_age=21
-    )
+    deps = ValidationDeps(allowed_domains=["company.com", "partner.org"], min_age=21)
     try:
-        result = await domain_agent.run(
-            "Alice Brown, 25 years old, alice@company.com",
-            deps=deps
-        )
+        result = await domain_agent.run("Alice Brown, 25 years old, alice@company.com", deps=deps)
         print(f"Extracted: {result.output}")
     except Exception as e:
         print(f"Validation failed: {e}")

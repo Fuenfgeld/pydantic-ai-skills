@@ -69,9 +69,7 @@ async def test_nested_structured_output(openrouter_model):
         system_prompt="Extract person information from text.",
     )
 
-    result = await agent.run(
-        "John Smith is 30 years old and lives at 123 Main St, New York, USA."
-    )
+    result = await agent.run("John Smith is 30 years old and lives at 123 Main St, New York, USA.")
 
     assert isinstance(result.output, Person)
     assert result.output.name == "John Smith"

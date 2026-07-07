@@ -7,8 +7,7 @@ Corresponds to: skills/pydantic-evals/references/examples/custom_evaluators.py
 
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import AwareDatetime, BaseModel
@@ -28,7 +27,7 @@ class TimeRangeSuccess(BaseModel):
 
     min_timestamp: AwareDatetime
     max_timestamp: AwareDatetime
-    explanation: Optional[str] = None
+    explanation: str | None = None
 
 
 class TimeRangeInputs(TypedDict):
@@ -45,7 +44,7 @@ async def test_validate_time_range_evaluator_pattern(openrouter_model):
     from pydantic_evals import Case, Dataset
     from pydantic_evals.evaluators import Evaluator, EvaluatorContext, EvaluatorOutput
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Custom evaluator matching the reference pattern
     @dataclass
@@ -76,7 +75,7 @@ async def test_validate_time_range_evaluator_pattern(openrouter_model):
         ),
     ]
 
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
+    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](name="eval_test", cases=cases)
 
     async def parse_time_range(inputs: TimeRangeInputs) -> TimeRangeSuccess:
         result = await agent.run(
@@ -98,7 +97,7 @@ async def test_user_message_concise_evaluator_pattern(openrouter_model):
     from pydantic_evals import Case, Dataset
     from pydantic_evals.evaluators import Evaluator, EvaluatorContext, EvaluatorOutput
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Custom evaluator matching the reference pattern
     @dataclass
@@ -126,7 +125,7 @@ async def test_user_message_concise_evaluator_pattern(openrouter_model):
         ),
     ]
 
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
+    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](name="eval_test", cases=cases)
 
     async def parse_time_range(inputs: TimeRangeInputs) -> TimeRangeSuccess:
         result = await agent.run(
@@ -148,7 +147,7 @@ async def test_multiple_evaluators_combined(openrouter_model):
     from pydantic_evals import Case, Dataset
     from pydantic_evals.evaluators import Evaluator, EvaluatorContext, EvaluatorOutput
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     @dataclass
     class ValidateTimeRange(Evaluator[TimeRangeInputs, TimeRangeSuccess]):
@@ -183,7 +182,7 @@ async def test_multiple_evaluators_combined(openrouter_model):
         ),
     ]
 
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
+    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](name="eval_test", cases=cases)
 
     async def parse_time_range(inputs: TimeRangeInputs) -> TimeRangeSuccess:
         result = await agent.run(

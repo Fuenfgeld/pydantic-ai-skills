@@ -4,7 +4,7 @@ Pydantic Evals test fixtures.
 Provides fixtures specific to testing evaluation patterns.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -14,7 +14,7 @@ def sample_time_range_inputs():
     """Standard inputs for TimeRangeInputs testing."""
     return {
         "prompt": "Show me data from last week",
-        "now": datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc),
+        "now": datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC),
     }
 
 

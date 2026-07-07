@@ -5,25 +5,21 @@ This file demonstrates how to orchestrate multiple specialized agents
 that work together to accomplish complex tasks.
 """
 
-import os
 import asyncio
+import os
+
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.models.openrouter import OpenRouterModel
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 load_dotenv()
 
-# Create OpenRouter provider
-provider = OpenAIProvider(
-    api_key=os.getenv('OPENROUTER_API_KEY'),
-    base_url='https://openrouter.ai/api/v1'
-)
-
-model = OpenAIChatModel(
-    model_name='openai/gpt-4o-mini',
-    provider=provider
+# OpenRouter has first-class support since Pydantic AI v2
+model = OpenRouterModel(
+    "openai/gpt-5.2",
+    provider=OpenRouterProvider(api_key=os.getenv("OPENROUTER_API_KEY", "your-openrouter-api-key")),
 )
 
 
@@ -31,9 +27,11 @@ model = OpenAIChatModel(
 # 1. DEFINE SPECIALIZED AGENTS
 # ============================================================================
 
+
 # Research Agent - Gathers information
 class ResearchResult(BaseModel):
     """Research findings."""
+
     topic: str
     key_facts: list[str]
     sources_summary: str
@@ -42,15 +40,16 @@ class ResearchResult(BaseModel):
 research_agent = Agent(
     model=model,
     output_type=ResearchResult,
-    system_prompt="""You are a research specialist.
+    instructions="""You are a research specialist.
     Gather key facts and summarize information on any topic.
-    Be thorough but concise."""
+    Be thorough but concise.""",
 )
 
 
 # Analysis Agent - Analyzes data
 class AnalysisResult(BaseModel):
     """Analysis output."""
+
     insights: list[str]
     patterns: list[str]
     recommendations: list[str]
@@ -59,15 +58,16 @@ class AnalysisResult(BaseModel):
 analysis_agent = Agent(
     model=model,
     output_type=AnalysisResult,
-    system_prompt="""You are a data analyst.
+    instructions="""You are a data analyst.
     Identify patterns, extract insights, and provide recommendations.
-    Be analytical and evidence-based."""
+    Be analytical and evidence-based.""",
 )
 
 
 # Writer Agent - Creates final output
 class WrittenReport(BaseModel):
     """Final written report."""
+
     title: str
     summary: str
     body: str
@@ -77,15 +77,16 @@ class WrittenReport(BaseModel):
 writer_agent = Agent(
     model=model,
     output_type=WrittenReport,
-    system_prompt="""You are a professional writer.
+    instructions="""You are a professional writer.
     Create clear, well-structured reports.
-    Be engaging and professional."""
+    Be engaging and professional.""",
 )
 
 
 # ============================================================================
 # 2. ORCHESTRATOR PATTERN
 # ============================================================================
+
 
 class ReportOrchestrator:
     """
@@ -114,9 +115,7 @@ class ReportOrchestrator:
         """
         # Step 1: Research
         print(f"📚 Researching: {topic}")
-        research_result = await self.research.run(
-            f"Research the topic: {topic}"
-        )
+        research_result = await self.research.run(f"Research the topic: {topic}")
         research = research_result.output
         print(f"   Found {len(research.key_facts)} key facts")
 
@@ -161,6 +160,7 @@ class ReportOrchestrator:
 # 3. PARALLEL AGENT EXECUTION
 # ============================================================================
 
+
 class ParallelProcessor:
     """
     Run multiple agents in parallel for independent tasks.
@@ -168,18 +168,12 @@ class ParallelProcessor:
 
     def __init__(self):
         self.agents = {
-            "summarizer": Agent(
-                model=model,
-                system_prompt="Summarize text in 2-3 sentences."
-            ),
-            "translator": Agent(
-                model=model,
-                system_prompt="Translate text to Spanish."
-            ),
+            "summarizer": Agent(model=model, instructions="Summarize text in 2-3 sentences."),
+            "translator": Agent(model=model, instructions="Translate text to Spanish."),
             "sentiment": Agent(
                 model=model,
                 output_type=str,
-                system_prompt="Analyze sentiment. Reply with: positive, negative, or neutral."
+                instructions="Analyze sentiment. Reply with: positive, negative, or neutral.",
             ),
         }
 
@@ -200,15 +194,13 @@ class ParallelProcessor:
         results = await asyncio.gather(*tasks.values())
 
         # Map results back to task names
-        return {
-            name: result.output
-            for name, result in zip(tasks.keys(), results)
-        }
+        return {name: result.output for name, result in zip(tasks.keys(), results, strict=True)}
 
 
 # ============================================================================
 # 4. AGENT ROUTING (CONDITIONAL)
 # ============================================================================
+
 
 class AgentRouter:
     """
@@ -220,27 +212,24 @@ class AgentRouter:
         self.classifier = Agent(
             model=model,
             output_type=str,
-            system_prompt="""Classify the user intent into one of:
+            instructions="""Classify the user intent into one of:
             - math: Mathematical calculations
             - code: Programming questions
             - general: General knowledge
-            Reply with just the category name."""
+            Reply with just the category name.""",
         )
 
         # Specialized agents
         self.math_agent = Agent(
-            model=model,
-            system_prompt="You are a math expert. Solve problems step by step."
+            model=model, instructions="You are a math expert. Solve problems step by step."
         )
 
         self.code_agent = Agent(
-            model=model,
-            system_prompt="You are a coding expert. Provide clean, working code."
+            model=model, instructions="You are a coding expert. Provide clean, working code."
         )
 
         self.general_agent = Agent(
-            model=model,
-            system_prompt="You are a helpful assistant for general questions."
+            model=model, instructions="You are a helpful assistant for general questions."
         )
 
     async def route_and_answer(self, query: str) -> dict:

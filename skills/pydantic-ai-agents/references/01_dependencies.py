@@ -6,7 +6,7 @@ in Pydantic AI agents using the Dependency Injection pattern.
 """
 
 from dataclasses import dataclass
-from typing import Optional
+
 import httpx
 
 
@@ -24,6 +24,7 @@ class AgentDeps:
     - Include all external connections (HTTP clients, DB connections, etc.)
     - Add helper methods for common checks or transformations
     """
+
     user_id: str
     api_key: str
     http_client: httpx.AsyncClient

@@ -84,6 +84,5 @@ def pytest_configure(config):
 def pytest_collection_modifyitems(config, items):
     skip_real = pytest.mark.skip(reason="No API keys configured")
     for item in items:
-        if "real_api" in item.keywords:
-            if not os.getenv("OPENROUTER_API_KEY"):
-                item.add_marker(skip_real)
+        if "real_api" in item.keywords and not os.getenv("OPENROUTER_API_KEY"):
+            item.add_marker(skip_real)

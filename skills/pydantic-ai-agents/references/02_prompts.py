@@ -5,9 +5,10 @@ This file demonstrates the Golden Standard for creating dynamic, context-aware
 system prompts in Pydantic AI agents.
 """
 
-from pydantic_ai import Agent, RunContext
 from dataclasses import dataclass
+
 import httpx
+from pydantic_ai import Agent, RunContext
 
 
 # Example dependency container (would import from 01_dependencies.py in real code)
@@ -23,15 +24,19 @@ class AgentDeps:
 
 
 # Create the agent with dependency type
-# NOTE: For OpenRouter, use OpenAIProvider with model object instead of string format
-# See 06_openrouter.py for the OpenRouter pattern
-agent = Agent('openai:gpt-4o', deps_type=AgentDeps)  # String format works for direct OpenAI API
+# NOTE: In v2, 'openai:' uses the OpenAI Responses API. Use 'openai-chat:' for
+# the Chat Completions API. See 06_openrouter.py for the OpenRouter pattern.
+agent = Agent("openai:gpt-5.2", deps_type=AgentDeps)
 
 
-@agent.system_prompt
-async def generate_system_prompt(ctx: RunContext[AgentDeps]) -> str:
+# v2 RECOMMENDED: @agent.instructions - instructions are NOT retained in message
+# history, so they always reflect the CURRENT agent when history is reused.
+# (@agent.system_prompt still exists; its text is carried inside the message
+# history, which matters when replaying history across different agents.)
+@agent.instructions
+async def generate_instructions(ctx: RunContext[AgentDeps]) -> str:
     """
-    Builds the system prompt dynamically at runtime.
+    Builds the instructions dynamically at runtime.
 
     Key Principles:
     - Access dependencies via ctx.deps
@@ -58,14 +63,15 @@ async def generate_system_prompt(ctx: RunContext[AgentDeps]) -> str:
     """
 
 
-# Alternative: Static system prompt (for simple cases)
-@agent.system_prompt
-def simple_prompt() -> str:
+# Alternative: Static instructions (for simple cases) - or pass
+# instructions="..." directly to the Agent constructor.
+@agent.instructions
+def simple_instructions() -> str:
     """Use this pattern when you don't need dynamic context."""
     return "You are a helpful assistant. Always be concise and accurate."
 
 
-# Best Practices for System Prompts:
+# Best Practices for Instructions / System Prompts:
 # 1. Role Definition: Start with "You are a specialized agent for..."
 # 2. Context Awareness: Reference data from ctx.deps
 #    Bad: "I help users."

@@ -8,10 +8,8 @@ because the original models use `use_attribute_docstrings=True` which requires
 source inspection that doesn't work well with dynamic module loading.
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
-import pytest
 from pydantic import AwareDatetime, BaseModel
 from typing_extensions import TypedDict
 
@@ -22,7 +20,7 @@ class TimeRangeBuilderSuccess(BaseModel):
 
     min_timestamp_with_offset: AwareDatetime
     max_timestamp_with_offset: AwareDatetime
-    explanation: Optional[str] = None
+    explanation: str | None = None
 
     def __str__(self):
         readable_min_timestamp = self.min_timestamp_with_offset.strftime(
@@ -65,7 +63,7 @@ class TestTimeRangeBuilderSuccess:
 
     def test_valid_time_range(self):
         """Test creating valid TimeRangeBuilderSuccess."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         result = TimeRangeBuilderSuccess(
             min_timestamp_with_offset=now - timedelta(days=7),
@@ -78,7 +76,7 @@ class TestTimeRangeBuilderSuccess:
 
     def test_explanation_can_be_none(self):
         """Test that explanation field is optional."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         result = TimeRangeBuilderSuccess(
             min_timestamp_with_offset=now - timedelta(hours=1),
@@ -90,7 +88,7 @@ class TestTimeRangeBuilderSuccess:
 
     def test_str_representation(self):
         """Test __str__ method produces readable output."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         result = TimeRangeBuilderSuccess(
             min_timestamp_with_offset=now - timedelta(days=1),
@@ -106,7 +104,7 @@ class TestTimeRangeBuilderSuccess:
 
     def test_str_without_explanation(self):
         """Test __str__ method when explanation is None."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         result = TimeRangeBuilderSuccess(
             min_timestamp_with_offset=now - timedelta(hours=1),
@@ -120,7 +118,7 @@ class TestTimeRangeBuilderSuccess:
 
     def test_requires_timezone_aware_datetime(self):
         """Test that timezone-aware datetime is preserved."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         result = TimeRangeBuilderSuccess(
             min_timestamp_with_offset=now - timedelta(hours=1),
@@ -167,7 +165,7 @@ class TestTimeRangeInputs:
 
     def test_inputs_structure(self):
         """Test TimeRangeInputs has correct structure."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         inputs: TimeRangeInputs = {
             "prompt": "Show me data from last week",
             "now": now,
@@ -178,7 +176,7 @@ class TestTimeRangeInputs:
 
     def test_various_prompts(self):
         """Test with various prompt formats."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         prompts = [
             "Last week",
             "Yesterday",
@@ -200,7 +198,7 @@ class TestTimeRangeResponse:
 
     def test_success_is_valid_response(self):
         """Test TimeRangeBuilderSuccess can be used as TimeRangeResponse."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         response = TimeRangeBuilderSuccess(
             min_timestamp_with_offset=now - timedelta(days=7),
@@ -218,7 +216,7 @@ class TestTimeRangeResponse:
 
     def test_can_distinguish_response_types(self):
         """Test we can distinguish between success and error responses."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         success = TimeRangeBuilderSuccess(
             min_timestamp_with_offset=now - timedelta(days=1),

@@ -1,8 +1,17 @@
+"""
+Generate an evaluation dataset with an LLM, then save it to YAML.
+
+v2 NOTES:
+- Dataset(name=...) is now a REQUIRED keyword argument when constructing a
+  Dataset in code; generate_dataset() names the dataset for you.
+- Use a currently-available reasoning model for generation - it runs once.
+"""
+
 import asyncio
 from pathlib import Path
 from types import NoneType
 
-from pydantic_ai_examples.evals.models import TimeRangeInputs, TimeRangeResponse
+from models import TimeRangeInputs, TimeRangeResponse
 from pydantic_evals import Dataset
 from pydantic_evals.generation import generate_dataset
 
@@ -10,7 +19,7 @@ from pydantic_evals.generation import generate_dataset
 async def main():
     dataset = await generate_dataset(
         dataset_type=Dataset[TimeRangeInputs, TimeRangeResponse, NoneType],
-        model='openai:o1',  # Use a smarter model since this is a more complex task that is only run once
+        model="openai:gpt-5.2",  # a smarter model is worth it - this runs only once
         n_examples=10,
         extra_instructions="""
         Generate a dataset of test cases for the time range inference agent.
@@ -39,10 +48,10 @@ async def main():
     )
 
     dataset.to_file(
-        Path(__file__).parent / 'datasets' / 'time_range_v1.yaml',
-        fmt='yaml',
+        Path(__file__).parent / "datasets" / "time_range_v1.yaml",
+        fmt="yaml",
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

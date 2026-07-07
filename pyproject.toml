@@ -26,8 +26,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "pydantic-ai>=1.44.0",
-    "pydantic-evals>=1.44.0",
+    "pydantic-ai>=2.5.0",
+    "pydantic-evals>=2.5.0",
     "logfire>=4.17.0",
     "python-dotenv>=1.0.0",
     "httpx>=0.28.0",

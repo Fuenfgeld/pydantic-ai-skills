@@ -5,7 +5,6 @@ CRITICAL: All tests in this file MUST be async due to module-level agent.
 We test the patterns using fresh agents to avoid module-level httpx issues.
 """
 
-import importlib.util
 from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -13,9 +12,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import BaseModel, Field, field_validator
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
-from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
 
 
 def load_main_module():
@@ -27,10 +26,8 @@ def load_main_module():
         / "references"
         / "05_main.py"
     )
-    spec = importlib.util.spec_from_file_location("main_05", module_path)
-    module = importlib.util.module_from_spec(spec)
     # Note: We don't exec the module to avoid creating the global agent
-    # Instead, we import the classes we need
+    # (tests/pydantic_ai_agents/test_reference_examples.py covers execution)
     return module_path
 
 
@@ -250,7 +247,7 @@ class TestAgentLifecycle:
 
     async def test_deps_initialization_pattern(self):
         """Test the pattern of initializing deps with resources."""
-        agent = Agent("test", deps_type=MockAgentDeps)
+        Agent("test", deps_type=MockAgentDeps)
 
         # Simulate the pattern from 05_main.py
         mock_client = AsyncMock()

@@ -12,15 +12,15 @@ The "system under test" is called a `Task`. For Pydantic AI agents, create a wra
 from pydantic_ai import Agent
 
 agent = Agent(
-    'openai:gpt-4o-mini',
-    system_prompt="You are a helpful customer support agent."
+    'openai:gpt-5.2',
+    instructions="You are a helpful customer support agent."
 )
 
 # Task wrapper
 async def run_agent(user_query: str) -> str:
     """Wrapper that executes agent and extracts output"""
     result = await agent.run(user_query)
-    return result.output  # Use result.output, NOT result.data
+    return result.output
 ```
 
 The task function signature must match your Dataset's input/output types.
@@ -53,7 +53,7 @@ class AgentDeps:
     api_key: str
     http_client: httpx.AsyncClient
 
-agent = Agent('openai:gpt-4o-mini', deps_type=AgentDeps)
+agent = Agent('openai:gpt-5.2', deps_type=AgentDeps)
 
 @agent.tool
 async def lookup_order(ctx: RunContext[AgentDeps], order_id: str) -> dict:
@@ -82,7 +82,7 @@ async def run_agent_with_mocks(user_query: str) -> str:
     )
 
     result = await agent.run(user_query, deps=test_deps)
-    return result.output  # Use result.output, NOT result.data
+    return result.output
 
 # Evaluate with mocked dependencies
 report = await dataset.evaluate(run_agent_with_mocks)
@@ -101,7 +101,7 @@ class OrderStatus(BaseModel):
     status: str
     estimated_delivery: str
 
-agent = Agent('openai:gpt-4o-mini', output_type=OrderStatus)  # Use output_type, NOT result_type
+agent = Agent('openai:gpt-5.2', output_type=OrderStatus)  # Use output_type, NOT result_type
 
 # Task extracts structured data
 async def run_agent(query: str) -> OrderStatus:
@@ -145,7 +145,7 @@ async def run_conversation(messages: List[Dict[str, str]]) -> str:
         conversation_history.extend(result.new_messages())  # Use new_messages()
 
     # Return final response
-    return result.output  # Use result.output
+    return result.output
 
 # Case with multi-turn input
 case = Case(
@@ -254,7 +254,7 @@ with logfire.span('Custom Operation') as span:
 
     result = await agent.run(query)
 
-    span.set_attribute('token_count', result.usage().total_tokens)
+    span.set_attribute('token_count', result.usage.total_tokens)
 ```
 
 These attributes become filterable in the Logfire UI.

@@ -34,6 +34,7 @@ Collection of Cases with default evaluators. Generic over input/output types.
 from pydantic_evals import Dataset
 
 dataset = Dataset(
+    name="my_eval_suite",  # v2: name is REQUIRED (keyword-only)
     cases=[case1, case2, case3],
     evaluators=[evaluator1, evaluator2]
 )
@@ -71,7 +72,7 @@ evaluators = [
 ]
 
 # Create dataset
-dataset = Dataset(cases=cases, evaluators=evaluators)
+dataset = Dataset(name="quickstart", cases=cases, evaluators=evaluators)
 
 # Run evaluation
 async def my_agent(query: str) -> str:
@@ -107,22 +108,21 @@ judge = LLMJudge(
     rubric="Response must: 1) Answer the question, 2) Cite context, 3) Be professional",
     include_input=True,
     include_expected_output=True,
-    model='openai:gpt-4o'
+    model='openai:gpt-5.2'
 )
 ```
 
-**Using OpenRouter for LLMJudge:**
+**Using OpenRouter for LLMJudge (v2 first-class support):**
 ```python
 from pydantic_evals.evaluators.llm_as_a_judge import set_default_judge_model
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.models.openrouter import OpenRouterModel
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 # Configure OpenRouter as judge model
-provider = OpenAIProvider(
-    api_key=os.getenv('OPENROUTER_API_KEY'),
-    base_url='https://openrouter.ai/api/v1'
+model = OpenRouterModel(
+    'openai/gpt-5.2',
+    provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY', '')),
 )
-model = OpenAIChatModel(model_name='gpt-4o-mini', provider=provider)
 set_default_judge_model(model)
 
 # Or pass model directly to LLMJudge
@@ -217,11 +217,11 @@ Wrap agent execution in a task function:
 ```python
 from pydantic_ai import Agent
 
-agent = Agent('openai:gpt-4o-mini', system_prompt="You are helpful.")
+agent = Agent('openai:gpt-5.2', instructions="You are helpful.")
 
 async def run_agent(query: str) -> str:
     result = await agent.run(query)
-    return result.output  # Use result.output, NOT result.data
+    return result.output
 ```
 
 ### Handle Dependencies
@@ -292,7 +292,7 @@ from pydantic_evals.generation import generate_dataset
 
 dataset = await generate_dataset(
     dataset_type=Dataset[str, str, None],
-    model='openai:o1',
+    model='openai:gpt-5.2',
     n_examples=10,
     extra_instructions="Generate diverse test cases for customer support agent"
 )
@@ -321,6 +321,7 @@ dataset = await generate_dataset(
 1. Load Dataset from file
 2. Define task function (agent wrapper)
 3. Run `dataset.evaluate_sync(task)` or `dataset.evaluate(task)`
+   (v2: extras like `name`, `max_concurrency`, `progress` are keyword-only)
 4. Analyze report with `report.print()` or Logfire
 
 **Accessing Results**:
@@ -343,12 +344,30 @@ for case in report.cases:  # NOTE: Use .cases, NOT .case_results
 
 ## Examples
 
-Complete example files demonstrating patterns:
+Complete example files demonstrating patterns (self-contained: sibling files
+import each other, e.g. `from models import ...`):
 
+- **[references/examples/models.py](references/examples/models.py)**: Input/output models for the agent under evaluation
+- **[references/examples/agent.py](references/examples/agent.py)**: The agent + task function the evaluations run against
 - **[references/examples/generate_dataset.py](references/examples/generate_dataset.py)**: Generate test cases with LLM
 - **[references/examples/custom_evaluators.py](references/examples/custom_evaluators.py)**: Implement custom evaluation logic
+- **[references/examples/add_custom_evaluators.py](references/examples/add_custom_evaluators.py)**: Attach dataset-wide and per-case evaluators
 - **[references/examples/unit_testing.py](references/examples/unit_testing.py)**: Run evaluations in CI/CD
 - **[references/examples/compare_models.py](references/examples/compare_models.py)**: Benchmark different models
+
+## v2 API Changes (Pydantic Evals)
+
+This skill targets pydantic-evals v2. Key changes from v1:
+
+- `Dataset(name=...)` is **required** (keyword-only)
+- `Dataset.evaluate()` / `evaluate_sync()`: `name`, `max_concurrency`,
+  `progress`, `retry_task`, `retry_evaluators` are **keyword-only**
+- `EvaluationResult` and `EvaluatorFailure` are keyword-only
+- Custom evaluator default names: override `get_default_evaluation_name()` /
+  `get_evaluator_version()` - the `evaluation_name` / `evaluator_version`
+  class-attribute fallback was removed
+- `Evaluator.name` classmethod → `Evaluator.get_serialization_name()`
+- Agent results: `result.usage` is a property; use `result.output`
 
 ## Resources
 

@@ -6,8 +6,7 @@ Corresponds to: skills/pydantic-evals/references/examples/models.py
 """
 
 import os
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import AwareDatetime, BaseModel
@@ -28,7 +27,7 @@ class TimeRangeBuilderSuccess(BaseModel):
 
     min_timestamp_with_offset: AwareDatetime
     max_timestamp_with_offset: AwareDatetime
-    explanation: Optional[str] = None
+    explanation: str | None = None
 
 
 class TimeRangeBuilderError(BaseModel):
@@ -58,7 +57,7 @@ async def test_llm_produces_success_response(openrouter_model):
         system_prompt="Parse time ranges. Return timestamps with timezone offsets.",
     )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     result = await agent.run(
         f"Parse 'last 7 days' relative to {now.isoformat()}. "
         f"Use {now.isoformat()} as max_timestamp_with_offset."
@@ -100,7 +99,7 @@ async def test_llm_union_type_success_or_error(openrouter_model):
         ),
     )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Test with valid input - should return Success
     result = await agent.run(

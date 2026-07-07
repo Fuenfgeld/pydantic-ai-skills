@@ -1,7 +1,8 @@
-"""OpenRouter Integration with Pydantic AI
+"""OpenRouter Integration with Pydantic AI (v2)
 
-OpenRouter is an API gateway that provides access to multiple LLM models through a unified API.
-This example shows how to configure a Pydantic AI agent to use OpenRouter models.
+OpenRouter is an API gateway that provides access to multiple LLM models through
+a unified API. Since Pydantic AI v2, OpenRouter has FIRST-CLASS support via
+OpenRouterModel and OpenRouterProvider - no more OpenAI-compatible workaround.
 
 Prerequisites:
 - Set OPENROUTER_API_KEY in your .env file
@@ -9,45 +10,67 @@ Prerequisites:
 """
 
 import os
+
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.models.openrouter import OpenRouterModel
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Get your OpenRouter API key from environment
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
-OPENROUTER_URL = 'https://openrouter.ai/api/v1'
+# ============================================================================
+# OPTION 1 (SIMPLEST): the 'openrouter:' model prefix
+# ============================================================================
+# With OPENROUTER_API_KEY set in the environment, just prefix the OpenRouter
+# model id (always '<vendor>/<model>', see https://openrouter.ai/models):
+#
+#   agent = Agent('openrouter:anthropic/claude-sonnet-4.6')
 
-# Define the provider for OpenRouter
-# OpenRouter uses the same API format as OpenAI, so we use OpenAIProvider
-provider = OpenAIProvider(
-    api_key=OPENROUTER_API_KEY,
-    base_url=OPENROUTER_URL
+
+# ============================================================================
+# OPTION 2 (EXPLICIT): OpenRouterModel + OpenRouterProvider
+# ============================================================================
+# Use this when you want to pass the API key explicitly or configure
+# app attribution / model settings.
+
+model = OpenRouterModel(
+    "openai/gpt-5.2",
+    provider=OpenRouterProvider(api_key=os.getenv("OPENROUTER_API_KEY", "your-openrouter-api-key")),
 )
 
-# Choose your OpenRouter model
-# Available models: gpt-4o-mini, claude-3-5-sonnet, llama-3.1-70b, etc.
-# See https://openrouter.ai/models for full list
-model = OpenAIChatModel(
-    model_name='gpt-4o-mini',
-    provider=provider
-)
 
 # Optional: Define a Pydantic model for structured output
 class Answer(BaseModel):
     """Structured response from the AI"""
+
     response: str
 
-# Create the agent with OpenRouter model
+
+# Create the agent with the OpenRouter model
 agent = Agent(
     model=model,
+    name="openrouter_agent",
     output_type=Answer,  # Use 'str' for plain text output
-    system_prompt="You are a helpful assistant."
+    instructions="You are a helpful assistant.",
 )
+
+
+# ============================================================================
+# OPTION 3 (ADVANCED): OpenRouter-specific model settings
+# ============================================================================
+# OpenRouterModelSettings exposes provider routing, reasoning effort, and
+# usage accounting:
+#
+#   from pydantic_ai.models.openrouter import OpenRouterModelSettings
+#
+#   settings = OpenRouterModelSettings(
+#       openrouter_reasoning={'effort': 'high'},
+#       openrouter_usage={'include': True},
+#   )
+#   agent = Agent(model, model_settings=settings)
+
 
 # Example usage
 if __name__ == "__main__":

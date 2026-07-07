@@ -5,21 +5,21 @@ This file demonstrates how to maintain conversation context across multiple
 agent.run() calls using message_history parameter.
 """
 
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from pydantic_ai import Agent, ModelMessage
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
-    UserPromptPart,
     TextPart,
+    UserPromptPart,
 )
-
 
 # =============================================================================
 # BASIC PATTERN: Using message_history
 # =============================================================================
+
 
 def basic_conversation_example():
     """
@@ -28,7 +28,7 @@ def basic_conversation_example():
     By default, each agent.run() call is stateless. To maintain conversation
     context, capture result.all_messages() and pass it to the next call.
     """
-    agent = Agent(model="openai:gpt-4o-mini", system_prompt="You are helpful.")
+    agent = Agent(model="openai:gpt-5.2", instructions="You are helpful.")
 
     # First turn - no history
     result1 = agent.run_sync("My name is Alice")
@@ -37,15 +37,12 @@ def basic_conversation_example():
     # Second turn - pass history so agent remembers
     result2 = agent.run_sync(
         "What is my name?",
-        message_history=messages  # Agent now knows "Alice"
+        message_history=messages,  # Agent now knows "Alice"
     )
     messages = result2.all_messages()  # Updated history
 
     # Third turn - continue the conversation
-    result3 = agent.run_sync(
-        "Tell me a joke about my name",
-        message_history=messages
-    )
+    result3 = agent.run_sync("Tell me a joke about my name", message_history=messages)
 
     print(result3.output)
 
@@ -53,6 +50,7 @@ def basic_conversation_example():
 # =============================================================================
 # FUNCTION SIGNATURE PATTERN: Return output + history
 # =============================================================================
+
 
 def run_agent_with_history(
     agent: Agent,
@@ -74,7 +72,7 @@ def run_agent_with_history(
 
 def conversation_loop_example():
     """Example of a conversation loop using the pattern above."""
-    agent = Agent(model="openai:gpt-4o-mini", system_prompt="You are helpful.")
+    agent = Agent(model="openai:gpt-5.2", instructions="You are helpful.")
 
     history: list[ModelMessage] = []
 
@@ -91,9 +89,11 @@ def conversation_loop_example():
 # CUSTOM MESSAGE CONVERSION: From your own format to ModelMessage
 # =============================================================================
 
+
 @dataclass
 class MyMessage:
     """Example custom message format (e.g., from database)."""
+
     role: str  # "user" or "assistant"
     content: str
     timestamp: datetime
@@ -118,19 +118,23 @@ def convert_to_model_messages(my_messages: list[MyMessage]) -> list[ModelMessage
         # Ensure timezone-aware timestamp
         ts = msg.timestamp
         if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
+            ts = ts.replace(tzinfo=UTC)
 
         if msg.role == "user":
-            result.append(ModelRequest(
-                parts=[UserPromptPart(content=msg.content, timestamp=ts)],
-                kind="request",
-            ))
+            result.append(
+                ModelRequest(
+                    parts=[UserPromptPart(content=msg.content, timestamp=ts)],
+                    kind="request",
+                )
+            )
         elif msg.role == "assistant":
-            result.append(ModelResponse(
-                parts=[TextPart(content=msg.content)],
-                kind="response",
-                timestamp=ts,
-            ))
+            result.append(
+                ModelResponse(
+                    parts=[TextPart(content=msg.content)],
+                    kind="response",
+                    timestamp=ts,
+                )
+            )
 
     return result
 
@@ -148,11 +152,8 @@ def custom_message_example():
     history = convert_to_model_messages(stored_messages)
 
     # Continue conversation with the agent
-    agent = Agent(model="openai:gpt-4o-mini", system_prompt="You are helpful.")
-    result = agent.run_sync(
-        "Remind me what my name is again?",
-        message_history=history
-    )
+    agent = Agent(model="openai:gpt-5.2", instructions="You are helpful.")
+    result = agent.run_sync("Remind me what my name is again?", message_history=history)
 
     print(result.output)  # Agent knows the user is Bob
 
@@ -167,8 +168,10 @@ Important Notes:
 1. ModelMessage is a UNION TYPE (ModelRequest | ModelResponse), not a class
    you instantiate directly.
 
-2. System prompt is NOT stored in message_history - it's set on the Agent
-   and injected automatically on each run.
+2. Instructions are NOT stored in message_history - they're set on the Agent
+   and injected automatically on each run. (Legacy `system_prompt` text IS
+   carried inside the history's ModelRequest parts - one reason v2 recommends
+   `instructions`.)
 
 3. Messages are IMMUTABLE - each run() returns a NEW list containing all
    previous messages plus the new exchange.

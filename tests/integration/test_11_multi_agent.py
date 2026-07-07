@@ -118,10 +118,7 @@ async def test_agent_routing(openrouter_model):
     intent = intent_result.output.strip().lower()
 
     # Route to appropriate agent
-    if "math" in intent:
-        agent = math_agent
-    else:
-        agent = general_agent
+    agent = math_agent if "math" in intent else general_agent
 
     answer_result = await agent.run(query)
 

@@ -8,6 +8,9 @@
 exampleCode/
 tests/example_code/
 
+# Vendored pydantic-ai source (reference only, do not commit)
+pydantic-ai/
+
 # Python
 __pycache__/
 *.py[cod]

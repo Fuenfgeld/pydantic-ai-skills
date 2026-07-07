@@ -12,8 +12,6 @@ verifying the expected behavior.
 import importlib.util
 from pathlib import Path
 
-import pytest
-
 
 # Load the module dynamically since Python doesn't allow importing modules starting with numbers
 def load_dependencies_module():

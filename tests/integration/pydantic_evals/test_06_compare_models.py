@@ -6,8 +6,7 @@ Corresponds to: skills/pydantic-evals/references/examples/compare_models.py
 """
 
 import os
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import AwareDatetime, BaseModel
@@ -27,7 +26,7 @@ class TimeRangeSuccess(BaseModel):
 
     min_timestamp: AwareDatetime
     max_timestamp: AwareDatetime
-    explanation: Optional[str] = None
+    explanation: str | None = None
 
 
 class TimeRangeInputs(TypedDict):
@@ -43,7 +42,7 @@ async def test_compare_model_settings(openrouter_model):
     from pydantic_ai import Agent
     from pydantic_evals import Case, Dataset
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     agent = Agent(
         model=openrouter_model,
@@ -58,7 +57,7 @@ async def test_compare_model_settings(openrouter_model):
         ),
     ]
 
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
+    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](name="eval_test", cases=cases)
 
     # Evaluate with low temperature (like compare_models.py pattern)
     async def parse_low_temp(inputs: TimeRangeInputs) -> TimeRangeSuccess:
@@ -81,7 +80,7 @@ async def test_compare_system_prompts(openrouter_model):
     from pydantic_ai import Agent
     from pydantic_evals import Case, Dataset
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     cases = [
         Case(
@@ -90,7 +89,7 @@ async def test_compare_system_prompts(openrouter_model):
         ),
     ]
 
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
+    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](name="eval_test", cases=cases)
 
     # Agent with strict interpretation
     strict_agent = Agent(

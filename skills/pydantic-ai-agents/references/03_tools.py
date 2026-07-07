@@ -5,9 +5,10 @@ This file demonstrates the Golden Standard for creating tools that agents can ca
 to interact with external systems, databases, or APIs.
 """
 
-from pydantic_ai import Agent, RunContext
 from dataclasses import dataclass
+
 import httpx
+from pydantic_ai import Agent, RunContext
 
 
 # Example dependency container (would import from 01_dependencies.py in real code)
@@ -19,9 +20,9 @@ class AgentDeps:
     environment: str = "production"
 
 
-# NOTE: For OpenRouter, use OpenAIProvider with model object instead of string format
-# See 06_openrouter.py for the OpenRouter pattern
-agent = Agent('openai:gpt-4o', deps_type=AgentDeps)  # String format works for direct OpenAI API
+# NOTE: In v2, 'openai:' uses the OpenAI Responses API ('openai-chat:' for Chat
+# Completions). See 06_openrouter.py for the OpenRouter pattern.
+agent = Agent("openai:gpt-5.2", deps_type=AgentDeps)
 
 
 @agent.tool
@@ -47,7 +48,7 @@ async def get_user_balance(ctx: RunContext[AgentDeps], currency: str) -> str:
     response = await ctx.deps.http_client.get(
         f"https://api.example.com/users/{ctx.deps.user_id}/balance",
         headers={"Authorization": f"Bearer {ctx.deps.api_key}"},
-        params={"currency": currency}
+        params={"currency": currency},
     )
     response.raise_for_status()
     balance_data = response.json()
@@ -56,10 +57,7 @@ async def get_user_balance(ctx: RunContext[AgentDeps], currency: str) -> str:
 
 @agent.tool
 async def transfer_funds(
-    ctx: RunContext[AgentDeps],
-    recipient_id: str,
-    amount: float,
-    currency: str
+    ctx: RunContext[AgentDeps], recipient_id: str, amount: float, currency: str
 ) -> dict:
     """
     Transfer funds from the current user to another user.
@@ -78,14 +76,9 @@ async def transfer_funds(
     if amount <= 0:
         return {"success": False, "error": "Amount must be positive"}
 
-    # Check environment before dangerous operations
-    if ctx.deps.environment == "production":
-        # Add extra validation in production
-        if amount > 10000:
-            return {
-                "success": False,
-                "error": "Transfers over 10,000 require manual approval"
-            }
+    # Check environment before dangerous operations: extra validation in production
+    if ctx.deps.environment == "production" and amount > 10000:
+        return {"success": False, "error": "Transfers over 10,000 require manual approval"}
 
     response = await ctx.deps.http_client.post(
         "https://api.example.com/transactions",
@@ -94,8 +87,8 @@ async def transfer_funds(
             "from_user": ctx.deps.user_id,
             "to_user": recipient_id,
             "amount": amount,
-            "currency": currency
-        }
+            "currency": currency,
+        },
     )
 
     if response.status_code != 200:
@@ -104,28 +97,28 @@ async def transfer_funds(
     return {"success": True, "transaction_id": response.json()["id"]}
 
 
-@agent.tool
-def simple_calculation(ctx: RunContext[AgentDeps], a: int, b: int) -> int:
+@agent.tool_plain
+def simple_calculation(a: int, b: int) -> int:
     """
-    Example of a tool that doesn't use dependencies directly.
+    Example of a tool that doesn't need dependencies.
 
-    IMPORTANT: When deps_type is set on the agent, ALL tools MUST have
-    ctx: RunContext as the first parameter - even if you don't use it.
+    IMPORTANT (v2): Use @agent.tool_plain for tools that don't take a
+    RunContext. @agent.tool now REQUIRES ctx: RunContext as the first
+    parameter and raises if it's missing.
 
     Args:
-        ctx: The context (required when deps_type is set, even if unused)
         a: First number
         b: Second number
 
     Returns:
         The sum of a and b
     """
-    # ctx is required but we don't need to access ctx.deps here
     return a + b
 
 
 # Best Practices for Tools:
-# 1. ALWAYS include ctx: RunContext as first parameter when deps_type is set
+# 1. Use @agent.tool with ctx: RunContext as first parameter for deps access;
+#    use @agent.tool_plain for context-free tools
 # 2. Write comprehensive docstrings - the AI reads these
 # 3. Use type hints for all parameters
 # 4. Handle errors gracefully and return meaningful messages

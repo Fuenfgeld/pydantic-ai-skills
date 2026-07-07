@@ -6,8 +6,7 @@ Corresponds to: skills/pydantic-evals/references/examples/unit_testing.py
 """
 
 import os
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import AwareDatetime, BaseModel
@@ -27,7 +26,7 @@ class TimeRangeSuccess(BaseModel):
 
     min_timestamp: AwareDatetime
     max_timestamp: AwareDatetime
-    explanation: Optional[str] = None
+    explanation: str | None = None
 
 
 class TimeRangeInputs(TypedDict):
@@ -44,7 +43,7 @@ async def test_evaluate_dataset_pattern(openrouter_model):
     from pydantic_evals import Case, Dataset
     from pydantic_evals.evaluators import IsInstance
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     agent = Agent(
         model=openrouter_model,
@@ -60,7 +59,7 @@ async def test_evaluate_dataset_pattern(openrouter_model):
         ),
     ]
 
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
+    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](name="eval_test", cases=cases)
 
     async def parse_time_range(inputs: TimeRangeInputs) -> TimeRangeSuccess:
         result = await agent.run(
@@ -84,7 +83,7 @@ async def test_report_averages_pattern(openrouter_model):
     from pydantic_evals import Case, Dataset
     from pydantic_evals.evaluators import IsInstance
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     agent = Agent(
         model=openrouter_model,
@@ -105,7 +104,7 @@ async def test_report_averages_pattern(openrouter_model):
         ),
     ]
 
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
+    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](name="eval_test", cases=cases)
 
     async def parse_time_range(inputs: TimeRangeInputs) -> TimeRangeSuccess:
         result = await agent.run(
@@ -127,7 +126,7 @@ async def test_assertion_pass_rate_pattern(openrouter_model):
     from pydantic_evals import Case, Dataset
     from pydantic_evals.evaluators import IsInstance
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     agent = Agent(
         model=openrouter_model,
@@ -143,7 +142,7 @@ async def test_assertion_pass_rate_pattern(openrouter_model):
         ),
     ]
 
-    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](cases=cases)
+    dataset = Dataset[TimeRangeInputs, TimeRangeSuccess, None](name="eval_test", cases=cases)
 
     async def parse_time_range(inputs: TimeRangeInputs) -> TimeRangeSuccess:
         result = await agent.run(

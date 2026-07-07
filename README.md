@@ -3,7 +3,7 @@
 [![CI](https://github.com/Fuenfgeld/pydantic-ai-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/Fuenfgeld/pydantic-ai-skills/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Pydantic AI](https://img.shields.io/badge/Pydantic%20AI-1.44+-green.svg)](https://ai.pydantic.dev/)
+[![Pydantic AI](https://img.shields.io/badge/Pydantic%20AI-2.5+-green.svg)](https://ai.pydantic.dev/)
 
 Production-ready **Claude Code skills** for building type-safe AI agents with **Pydantic AI**. Comprehensive reference implementations covering dependency injection, tool calling, structured outputs, streaming, multi-agent orchestration, and LLM evaluation patterns.
 

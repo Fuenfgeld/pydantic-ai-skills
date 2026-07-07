@@ -1,9 +1,13 @@
 ---
 name: pydantic-ai-agents
-description: "Build and debug Pydantic AI agents using best practices for dependencies, dynamic system prompts, tools, and structured output validation. Use when the user wants to: (1) Create a new Pydantic AI agent, (2) Debug or fix an existing agent, (3) Add features like tools, validators, or dynamic prompts, (4) Integrate OpenRouter for multi-model access, (5) Add Logfire for debugging/observability, (6) Structure agent architecture with dependency injection."
+description: "Build and debug Pydantic AI v2 agents using best practices for dependencies, instructions, tools, capabilities, hooks, and structured output validation. Use when the user wants to: (1) Create a new Pydantic AI agent, (2) Debug or fix an existing agent, (3) Add features like tools, validators, capabilities, hooks, or dynamic instructions, (4) Integrate OpenRouter for multi-model access, (5) Add Logfire for debugging/observability, (6) Structure agent architecture with dependency injection, (7) Migrate an agent from Pydantic AI v1 to v2."
 ---
 
 # Pydantic AI Reference Skill
+
+**Targets Pydantic AI v2** (v2.0.0 released 2026-06-23). See the
+[v1 → v2 migration notes](#10-v1--v2-migration-notes) at the end for the
+breaking changes this skill's examples already incorporate.
 
 ## Pydantic AI Developer Guide
 
@@ -20,27 +24,41 @@ Load with `python-dotenv`: `load_dotenv()`. Never hardcode keys in source code.
 
 ### 1. Core Architecture
 
-Pydantic AI agents have four key components:
+Pydantic AI agents have five key components:
 
 #### Dependencies (deps):
 - **Reference**: `references/01_dependencies.py`
 - Use dataclasses to hold API keys, database connections, and user context
 - Never use global variables for state
 
-#### System Prompts (system_prompt):
+#### Instructions (instructions):
 - **Reference**: `references/02_prompts.py`
-- Make prompts dynamic using `@agent.system_prompt` decorator
+- **v2 recommended**: use `instructions=` / `@agent.instructions` (instructions
+  are NOT carried in message history, so they always reflect the current agent)
+- Make them dynamic using the `@agent.instructions` decorator
 - Inject data from `ctx.deps` into the prompt string
+- Legacy `system_prompt=` / `@agent.system_prompt` still work; their text IS
+  carried in message history - only use when replaying history across agents
 
-#### Tools (@agent.tool):
+#### Tools (@agent.tool / @agent.tool_plain):
 - **Reference**: `references/03_tools.py`
-- **IMPORTANT**: When `deps_type` is set on the agent, ALL tools must have `ctx: RunContext` as first parameter - even if they don't use it
+- **v2**: `@agent.tool` REQUIRES `ctx: RunContext` as first parameter; use
+  `@agent.tool_plain` for context-free tools (it raises otherwise)
 - Use `ctx.deps` to access injected dependencies
 
 #### Validators (output_type):
 - **Reference**: `references/04_validators.py`
 - Use Pydantic models to enforce structured output
 - Use `@field_validator` for logic checks
+
+#### Capabilities (capabilities) - NEW in v2:
+- **Reference**: `references/13_capabilities_native_tools.py`
+- THE core v2 primitive: one composable unit bundling tools, hooks,
+  instructions, and model settings
+- Provider-adaptive capabilities: `Thinking`, `WebSearch`, `WebFetch`,
+  `ImageGeneration`, `MCP`
+- Replaces v1's `builtin_tools=`, `prepare_tools=`, `history_processors=`,
+  `instrument=`, `event_stream_handler=` Agent arguments
 
 ### 2. Promoting Instructions (System Prompt Engineering)
 
@@ -60,29 +78,34 @@ Follow these rules when writing system prompts:
 **Reference**: `references/06_openrouter.py`
 
 OpenRouter is an API gateway that provides access to multiple LLM models through a unified API.
+Since Pydantic AI v2 it has **first-class support** - do NOT use the old
+OpenAI-compatible `base_url` workaround anymore.
 
 #### Key Points:
-- OpenRouter uses OpenAI-compatible API format
 - Set `OPENROUTER_API_KEY` in your `.env` file
-- Use `OpenAIProvider` with `base_url='https://openrouter.ai/api/v1'`
-- Access to models like GPT-4o-mini, Claude, Llama, and more
-- See https://openrouter.ai/models for available models
+- Simplest: model string prefix `'openrouter:<vendor>/<model>'`
+- Explicit: `OpenRouterModel` + `OpenRouterProvider`
+- OpenRouter model ids are always vendor-prefixed (e.g. `openai/gpt-5.2`,
+  `anthropic/claude-sonnet-4.6`) - see https://openrouter.ai/models
 
 #### Example Setup:
 ```python
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai import Agent
+from pydantic_ai.models.openrouter import OpenRouterModel
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 
-provider = OpenAIProvider(
-    api_key=os.getenv('OPENROUTER_API_KEY'),
-    base_url='https://openrouter.ai/api/v1'
-)
+# Simplest (reads OPENROUTER_API_KEY from environment):
+agent = Agent('openrouter:anthropic/claude-sonnet-4.6')
 
-model = OpenAIChatModel(
-    model_name='gpt-4o-mini',
-    provider=provider
+# Explicit:
+model = OpenRouterModel(
+    'openai/gpt-5.2',
+    provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY', '')),
 )
 ```
+
+`OpenRouterModelSettings` adds provider routing, reasoning effort
+(`openrouter_reasoning={'effort': 'high'}`), and usage accounting.
 
 ### 4. Debugging with Logfire
 
@@ -100,6 +123,12 @@ Logfire is a platform tightly integrated with Pydantic AI for debugging and obse
 1. Get API key from https://logfire.pydantic.dev/
 2. Set `LOGFIRE_API_KEY` in your `.env` file
 3. Configure: `logfire.configure(token=LOGFIRE_API_KEY)`
+4. Instrument: `logfire.instrument_pydantic_ai()` - traces every agent run,
+   model request, and tool call automatically
+
+**v2 note**: the default instrumentation format is version 5; agent run spans
+report token usage under `gen_ai.aggregated_usage.*` (model request spans keep
+`gen_ai.usage.*`). Update dashboards that read usage from run spans.
 
 #### Usage Pattern:
 ```python
@@ -114,8 +143,12 @@ with logfire.span('Calling Agent') as span:
 #### Streaming Responses:
 - **Reference**: `references/08_streaming.py`
 - Use `agent.run_stream()` for real-time output
-- Stream with `async for chunk in response.stream_text()`
+- Stream text with `async for chunk in response.stream_text()`
+- Stream partial structured output with `response.stream_output()` (v2 rename
+  of v1's `.stream()`; `.stream_structured()` is now `.stream_response()`)
 - Get final result with `await response.get_output()`
+- v2: `agent.run_stream_events()` is a context manager only
+  (`async with agent.run_stream_events(...) as events:`)
 
 #### Result Validators & Retry:
 - **Reference**: `references/09_result_validators.py`
@@ -123,17 +156,51 @@ with logfire.span('Calling Agent') as span:
 - Raise `ModelRetry("feedback")` to trigger retry with guidance
 - Set `retries=3` on Agent for auto-retry on validation failure
 
-#### Model Settings:
+#### Model Settings & Usage:
 - **Reference**: `references/10_model_settings.py`
 - Pass `model_settings={'temperature': 0.7, 'max_tokens': 500}` to `agent.run()`
 - Use low temperature (0.0-0.3) for factual tasks
 - Use high temperature (0.7-1.0) for creative tasks
+- **v2**: `result.usage` is a property (NOT `result.usage()`), with
+  `input_tokens`/`output_tokens` (renamed from request/response tokens)
 
 #### Multi-Agent Systems:
 - **Reference**: `references/11_multi_agent.py`
 - Orchestrate multiple specialized agents for complex tasks
 - Use `asyncio.gather()` for parallel agent execution
 - Implement routing for intent-based agent selection
+
+#### Capabilities & Native Tools (NEW in v2):
+- **Reference**: `references/13_capabilities_native_tools.py`
+- Pass `capabilities=[...]` on the Agent; prefer provider-adaptive
+  capabilities (`Thinking(effort='high')`, `WebSearch()`, `WebFetch()`) so
+  code survives provider changes
+- v2 renamed "builtin tools" to **native tools**: wrap them as
+  `NativeTool(WebSearchTool(...))` when provider-specific config matters
+- `WebSearch()`/`WebFetch()` are native-only by default and RAISE on
+  unsupported models; restore local fallback with
+  `WebSearch(local='duckduckgo')` / `WebFetch(local=True)`
+- Bundle instructions + tools with `Capability(id=..., description=...)`;
+  add `defer_loading=True` for on-demand loading (progressive disclosure)
+- Subclass `AbstractCapability` for reusable bundles with model settings/hooks
+
+#### Lifecycle Hooks (NEW in v2):
+- **Reference**: `references/14_hooks.py`
+- Create `hooks = Hooks()`, register with `@hooks.on.before_model_request`,
+  `@hooks.on.before_tool_execute(tools=['name'])`, etc., then pass
+  `capabilities=[hooks]`
+- Use for logging, metrics, auditing, and light interception
+- Always return the (possibly modified) context/args from a hook
+
+#### Toolsets & MCP (v2 API):
+- **Reference**: `references/15_toolsets_mcp.py`
+- Group reusable tools in a `FunctionToolset`; share across agents via
+  `Agent(toolsets=[...])`
+- MCP servers: `pydantic_ai.mcp.MCPToolset` (replaces v1's `MCPServerStdio`/
+  `MCPServerSSE`/`MCPServerStreamableHTTP`); manage connections with
+  `async with agent:` (replaces `agent.run_mcp_servers()`)
+- Load config files with `load_mcp_toolsets(...)`; provider-native MCP via the
+  `MCP(url=..., native=True)` capability
 
 ### 6. Conversation History (Persistent Memory)
 
@@ -152,7 +219,7 @@ By default, each `agent.run()` call is stateless - the agent has no memory of pr
 ```python
 from pydantic_ai import Agent, ModelMessage
 
-agent = Agent(model=model, system_prompt="You are helpful.")
+agent = Agent(model=model, instructions="You are helpful.")
 
 # First turn - no history
 result1 = agent.run_sync("My name is Alice")
@@ -239,7 +306,7 @@ def convert_to_model_messages(my_messages: list[MyMessage]) -> list[ModelMessage
 - **User messages** → `ModelRequest` with `UserPromptPart`
 - **Assistant messages** → `ModelResponse` with `TextPart`
 - **Timestamps must be timezone-aware**: Use `timezone.utc`
-- **System prompt is NOT in message_history**: It's set on the Agent and injected automatically
+- **Instructions are NOT in message_history**: They're set on the Agent and injected automatically (legacy `system_prompt` text IS carried in history)
 
 ### 7. Testing Best Practices
 
@@ -283,8 +350,37 @@ Build a new agent by:
 4. Using OpenRouter (`references/06_openrouter.py`) for multi-model access
 5. Adding Logfire (`references/07_logfire.py`) for debugging and monitoring
 6. Adding conversation history (`references/12_conversation_history.py`) for multi-turn conversations
-7. Adding advanced patterns (streaming, validators, multi-agent) as needed
+7. Adding capabilities/native tools (`references/13_capabilities_native_tools.py`) for web search, thinking, or reusable behavior bundles
+8. Adding hooks (`references/14_hooks.py`) for logging, auditing, and interception
+9. Adding toolsets or MCP servers (`references/15_toolsets_mcp.py`) for reusable/external tools
+10. Adding advanced patterns (streaming, validators, multi-agent) as needed
 
 ### 9. Complete Example
 
 See `references/05_main.py` for a complete working agent that demonstrates all patterns.
+
+### 10. v1 → v2 Migration Notes
+
+Key breaking changes in Pydantic AI v2 (all examples in this skill are v2):
+
+| v1 | v2 |
+|---|---|
+| `result.usage()` | `result.usage` (property) |
+| `usage.request_tokens` / `response_tokens` | `usage.input_tokens` / `output_tokens`; `Usage` → `RunUsage` |
+| `Agent('gpt-4o')` (bare model name) | Raises `UserError` - always provider-prefix: `Agent('openai:gpt-5.2')` |
+| `openai:` prefix → Chat Completions | `openai:` → Responses API; use `openai-chat:` for Chat Completions |
+| OpenRouter via `OpenAIProvider(base_url=...)` | `OpenRouterModel` / `'openrouter:'` prefix |
+| `Agent(builtin_tools=[...])` | `capabilities=[NativeTool(...)]`; `pydantic_ai.builtin_tools` → `pydantic_ai.native_tools` |
+| `Agent(prepare_tools=...)`, `history_processors=`, `event_stream_handler=`, `instrument=` | `capabilities=[PrepareTools(...)]`, `ProcessHistory(...)`, `ProcessEventStream(...)`, `Instrumentation(...)` |
+| `MCPServerStdio` / `MCPServerSSE` / `MCPServerStreamableHTTP`; `agent.run_mcp_servers()` | `MCPToolset`; `async with agent:` |
+| `stream.stream()` / `.stream_structured()` / `.get()` | `.stream_output()` / `.stream_response()` / `.response` |
+| `for e in agent.run_stream_events(...)` | `async with agent.run_stream_events(...) as events:` (context manager only) |
+| `DeferredToolCalls` / `DeferredToolset` | `DeferredToolRequests` / `ExternalToolset` |
+| `@toolset.tool` on ctx-less function | Raises - use `@toolset.tool_plain` |
+| Default `end_strategy='early'` | Default `'graceful'` - function tools alongside a successful output tool now RUN; set `end_strategy='early'` explicitly to skip them |
+| Un-parameterized `Agent` infers `Agent[None, str]` | Infers `Agent[object, str]` - update `Agent[None, ...]`/`RunContext[None]` annotations to `object` |
+| `ModelProfile` dataclass (`.update()`, `.from_profile()`) | `TypedDict` - use `merge_profile()`, `profile.get('field')`, `{**profile, 'field': v}` |
+| Instrumentation format ≤4, `gen_ai.usage.*` on run spans | Format 5 default; run spans use `gen_ai.aggregated_usage.*` |
+| `pip install pydantic-ai` bundles all providers | Slimmer default (openai/anthropic/google + minimal); add extras: `pydantic-ai[bedrock,groq,...]` |
+
+Full upgrade guide: https://ai.pydantic.dev/changelog/

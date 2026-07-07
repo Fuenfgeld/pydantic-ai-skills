@@ -16,9 +16,8 @@ def pytest_collection_modifyitems(config, items):
 
     for item in items:
         # All tests in integration directory require API keys
-        if "integration" in str(item.fspath):
-            if not os.getenv("OPENROUTER_API_KEY"):
-                item.add_marker(skip_real)
+        if "integration" in str(item.fspath) and not os.getenv("OPENROUTER_API_KEY"):
+            item.add_marker(skip_real)
 
 
 @pytest.fixture

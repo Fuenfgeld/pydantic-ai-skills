@@ -54,7 +54,7 @@ async def test_usage_tracking(openrouter_model):
         model_settings={"max_tokens": 20},
     )
 
-    usage = result.usage()
+    usage = result.usage
     assert usage.total_tokens > 0
     assert usage.input_tokens > 0
     assert usage.output_tokens > 0

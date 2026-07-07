@@ -37,4 +37,4 @@ async def test_logfire_span_pattern(openrouter_model):
 
     # Verify we can access result attributes that logfire would log
     assert result.all_messages() is not None
-    assert result.usage() is not None
+    assert result.usage is not None

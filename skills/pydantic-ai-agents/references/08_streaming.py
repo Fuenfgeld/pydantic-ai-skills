@@ -5,31 +5,27 @@ This file demonstrates how to stream agent responses in real-time
 for better user experience with long outputs.
 """
 
-import os
 import asyncio
+import os
+
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.models.openrouter import OpenRouterModel
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 load_dotenv()
 
-# Create OpenRouter provider
-provider = OpenAIProvider(
-    api_key=os.getenv('OPENROUTER_API_KEY'),
-    base_url='https://openrouter.ai/api/v1'
-)
-
-model = OpenAIChatModel(
-    model_name='openai/gpt-4o-mini',
-    provider=provider
+model = OpenRouterModel(
+    "openai/gpt-5.2",
+    provider=OpenRouterProvider(api_key=os.getenv("OPENROUTER_API_KEY", "your-openrouter-api-key")),
 )
 
 # Simple agent for streaming demo
 agent = Agent(
     model=model,
-    system_prompt="You are a helpful assistant. Provide detailed explanations."
+    name="streaming_agent",
+    instructions="You are a helpful assistant. Provide detailed explanations.",
 )
 
 
@@ -49,7 +45,7 @@ async def stream_text_example():
     async with agent.run_stream("Explain how photosynthesis works in 3 sentences.") as response:
         # Stream text chunks as they arrive
         async for chunk in response.stream_text():
-            print(chunk, end='', flush=True)
+            print(chunk, end="", flush=True)
 
         print("\n" + "-" * 40)
 
@@ -63,6 +59,7 @@ async def stream_text_example():
 # Streaming with structured output
 class ExplanationResponse(BaseModel):
     """Structured response for explanations."""
+
     topic: str
     explanation: str
     key_points: list[str]
@@ -70,8 +67,9 @@ class ExplanationResponse(BaseModel):
 
 structured_agent = Agent(
     model=model,
+    name="structured_streaming_agent",
     output_type=ExplanationResponse,
-    system_prompt="You explain topics clearly with key points."
+    instructions="You explain topics clearly with key points.",
 )
 
 
@@ -79,22 +77,27 @@ async def stream_structured_example():
     """
     Stream responses even with structured output.
 
-    Note: When using output_type, streaming still works but the final
-    structured result is only available after streaming completes.
+    Key Points (v2):
+    - Use `response.stream_output()` to iterate progressively-validated
+      partial output objects (renamed from `.stream()` in v1)
+    - The final structured result is available via `await response.get_output()`
+      after streaming completes
     """
     print("\nStreaming with structured output:")
     print("-" * 40)
 
     async with structured_agent.run_stream("Explain machine learning") as response:
-        # Stream the text representation
-        async for chunk in response.stream_text():
-            print(chunk, end='', flush=True)
+        # Stream partial validated output as it builds up
+        async for partial in response.stream_output():
+            # `partial` is an ExplanationResponse with fields filled as available
+            # (fields not yet streamed may be unset - print the whole object)
+            print(partial)
 
-        print("\n" + "-" * 40)
+        print("-" * 40)
 
-        # Get the structured result
+        # Get the final structured result
         final_result = await response.get_output()
-        print(f"\nStructured Result:")
+        print("\nStructured Result:")
         print(f"  Topic: {final_result.topic}")
         print(f"  Key Points: {final_result.key_points}")
 
@@ -106,7 +109,10 @@ async def stream_structured_example():
 # 2. Use `flush=True` in print() for immediate output
 # 3. Remember that `get_output()` returns the complete result after streaming
 # 4. Streaming works with both plain text and structured outputs
+#    (v2 renames: .stream() -> .stream_output(), .stream_structured() -> .stream_response())
 # 5. Use streaming for chat interfaces and real-time feedback
+# 6. For token-by-token events across a whole run (including tool calls), use
+#    `async with agent.run_stream_events(...) as events` (v2: context manager only)
 
 
 if __name__ == "__main__":

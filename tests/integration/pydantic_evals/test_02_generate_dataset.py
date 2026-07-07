@@ -6,8 +6,7 @@ Corresponds to: skills/pydantic-evals/references/examples/generate_dataset.py
 """
 
 import os
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import AwareDatetime, BaseModel
@@ -27,7 +26,7 @@ class TimeRangeSuccess(BaseModel):
 
     min_timestamp: AwareDatetime
     max_timestamp: AwareDatetime
-    explanation: Optional[str] = None
+    explanation: str | None = None
 
 
 class TimeRangeError(BaseModel):
@@ -48,7 +47,7 @@ async def test_create_dataset_with_cases():
     """Test creating a Dataset with test cases - mirrors generate_dataset pattern."""
     from pydantic_evals import Case, Dataset
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Create test cases like generate_dataset.py produces
     cases = [
@@ -69,7 +68,7 @@ async def test_create_dataset_with_cases():
     ]
 
     dataset = Dataset[TimeRangeInputs, TimeRangeSuccess | TimeRangeError, None](
-        cases=cases
+        name="eval_test", cases=cases
     )
 
     assert len(dataset.cases) == 2
@@ -82,7 +81,7 @@ async def test_dataset_serialization():
     """Test Dataset can be serialized - mirrors to_file pattern."""
     from pydantic_evals import Case, Dataset
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     cases = [
         Case(
@@ -97,7 +96,7 @@ async def test_dataset_serialization():
     ]
 
     dataset = Dataset[TimeRangeInputs, TimeRangeSuccess | TimeRangeError, None](
-        cases=cases
+        name="eval_test", cases=cases
     )
 
     # Test model serialization (JSON round-trip like to_file would do)

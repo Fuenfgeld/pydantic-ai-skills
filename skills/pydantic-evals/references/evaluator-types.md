@@ -123,6 +123,7 @@ from pydantic_evals.evaluators import IsInstance, Contains, MaxDuration, LLMJudg
 
 # Always run cheap checks first
 dataset = Dataset(
+    name='my_dataset',  # v2: name is required
     cases=[...],
     evaluators=[
         MaxDuration(2.0),                  # First: Check latency
@@ -145,7 +146,7 @@ from pydantic_evals.evaluators import LLMJudge
 
 judge = LLMJudge(
     rubric="Is the response polite and professional? Answer PASS or FAIL.",
-    model='openai:gpt-4o'
+    model='openai:gpt-5.2'
 )
 ```
 
@@ -205,7 +206,7 @@ safety_judge = LLMJudge(
 # Use cheaper model for simple checks
 tone_judge = LLMJudge(
     rubric="Is this polite?",
-    model='openai:gpt-4o-mini'
+    model='openai:gpt-5.2'
 )
 ```
 
@@ -434,6 +435,7 @@ from pydantic_evals.evaluators import *
 from pydantic_evals.otel import SpanQuery
 
 dataset = Dataset(
+    name='my_dataset',  # v2: name is required
     cases=[...],
     evaluators=[
         # Layer 1: Structure (fast, free)

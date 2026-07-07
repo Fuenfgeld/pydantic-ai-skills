@@ -170,12 +170,12 @@ In Pydantic Evals terminology, the "system under test" is the `Task`. For Pydant
 ```python
 from pydantic_ai import Agent
 
-agent = Agent('openai:gpt-4o-mini')
+agent = Agent('openai:gpt-5.2')
 
 async def task(user_input: str) -> str:
     """Wrapper that executes agent and extracts output"""
     result = await agent.run(user_input)
-    return result.data
+    return result.output
 ```
 
 The task function signature must match the Dataset's input/output types.

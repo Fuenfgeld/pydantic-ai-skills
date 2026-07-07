@@ -5,9 +5,9 @@ Provides fixtures specific to testing Pydantic AI agent patterns.
 """
 
 import pytest
-from pydantic_ai.models.test import TestModel
-from pydantic_ai.models.function import FunctionModel, AgentInfo
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
+from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.test import TestModel
 
 
 @pytest.fixture
