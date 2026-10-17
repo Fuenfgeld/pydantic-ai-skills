@@ -117,3 +117,24 @@ if __name__ == "__main__":
     example_exception_logging(agent)
 
     print("\nCheck your Logfire dashboard at https://logfire.pydantic.dev/ to see the traces!")
+
+
+# --- Reading traces back (needs a *read* token, not the write token) ---
+
+
+def query_recent_errors(read_token: str, minutes: int = 60) -> list[dict]:
+    """Most recent exception records, e.g. failed tool calls with their arguments."""
+    from datetime import UTC, datetime, timedelta
+
+    from logfire.query_client import LogfireQueryClient
+
+    sql = (
+        "SELECT start_timestamp, span_name, message, exception_message, "
+        "attributes->>'gen_ai.tool.name' AS tool, "
+        "attributes->>'tool_arguments' AS tool_arguments "
+        "FROM records WHERE is_exception OR level >= 17 "
+        "ORDER BY start_timestamp DESC LIMIT 50"
+    )
+    since = datetime.now(UTC) - timedelta(minutes=minutes)
+    with LogfireQueryClient(read_token=read_token) as client:
+        return client.query_json_rows(sql, min_timestamp=since)["rows"]

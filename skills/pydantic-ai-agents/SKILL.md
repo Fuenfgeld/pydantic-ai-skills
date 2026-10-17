@@ -121,7 +121,8 @@ Logfire is a platform tightly integrated with Pydantic AI for debugging and obse
 
 #### Setup:
 1. Get API key from https://logfire.pydantic.dev/
-2. Set `LOGFIRE_API_KEY` in your `.env` file
+2. Set `LOGFIRE_API_KEY` in your `.env` file (the SDK auto-reads only
+   `LOGFIRE_TOKEN`, so pass the key explicitly)
 3. Configure: `logfire.configure(token=LOGFIRE_API_KEY)`
 4. Instrument: `logfire.instrument_pydantic_ai()` - traces every agent run,
    model request, and tool call automatically
@@ -137,6 +138,15 @@ with logfire.span('Calling Agent') as span:
     span.set_attribute('result', result.output)
     logfire.info('{result=}', result=result.output)
 ```
+
+#### Reading Traces Back:
+- Needs a **read token** (project settings → Read tokens, `LOGFIRE_READ_TOKEN`);
+  the write token is rejected with `401`.
+- `LogfireQueryClient(read_token=...).query_json_rows(sql, min_timestamp=...)`
+  runs SQL against the `records` table. Failed tool calls:
+  `WHERE is_exception OR level >= 17`; tool name and arguments are in
+  `attributes->>'gen_ai.tool.name'` and `attributes->>'tool_arguments'`.
+- See `query_recent_errors()` in `references/07_logfire.py`.
 
 ### 5. Advanced Patterns
 
