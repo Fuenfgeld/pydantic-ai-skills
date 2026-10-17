@@ -4,7 +4,9 @@ Logfire is a platform that helps you debug Agent systems through logging, tracin
 It is tightly integrated with Pydantic AI and provides detailed insights into agent execution.
 
 Prerequisites:
-- Set LOGFIRE_API_KEY in your .env file (get from https://logfire.pydantic.dev/)
+- Set LOGFIRE_API_KEY in your .env file (get from https://logfire.pydantic.dev/).
+  Note: the SDK auto-reads only LOGFIRE_TOKEN, so this file passes the key explicitly.
+- Optional: LOGFIRE_READ_TOKEN (a separate *read* token) to query traces back.
 - Install required packages: logfire, pydantic-ai
 """
 
@@ -117,3 +119,33 @@ if __name__ == "__main__":
     example_exception_logging(agent)
 
     print("\nCheck your Logfire dashboard at https://logfire.pydantic.dev/ to see the traces!")
+
+
+# --- Reading traces back: find failed tool calls from the terminal ---
+"""
+A write token only sends data; querying needs a read token (project settings ->
+Read tokens). The query client speaks SQL over the `records` table.
+"""
+
+
+def example_query_recent_errors(read_token: str, minutes: int = 60) -> list[dict]:
+    """Return the most recent exception records (e.g. failed tool calls).
+
+    Args:
+        read_token: A Logfire *read* token (LOGFIRE_READ_TOKEN), not the write token.
+        minutes: How far back to look.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from logfire.query_client import LogfireQueryClient
+
+    sql = (
+        "SELECT start_timestamp, span_name, message, exception_message, "
+        "attributes->>'gen_ai.tool.name' AS tool, "
+        "attributes->>'tool_arguments' AS tool_arguments "
+        "FROM records WHERE is_exception OR level >= 17 "
+        "ORDER BY start_timestamp DESC LIMIT 50"
+    )
+    since = datetime.now(UTC) - timedelta(minutes=minutes)
+    with LogfireQueryClient(read_token=read_token) as client:
+        return client.query_json_rows(sql, min_timestamp=since)["rows"]
