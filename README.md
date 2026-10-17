@@ -92,7 +92,7 @@ cp -r skills/pydantic-evals ~/.claude/skills/
 ├── skills/
 │   ├── pydantic-ai-agents/
 │   │   ├── SKILL.md              # Main skill documentation
-│   │   └── references/           # 16 reference implementation files
+│   │   └── references/           # 12 reference implementation files
 │   └── pydantic-evals/
 │       ├── SKILL.md              # Main skill documentation
 │       └── references/           # Evaluator examples and guides

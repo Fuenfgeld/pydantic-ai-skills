@@ -46,25 +46,6 @@ Pydantic AI agents have five key components:
   `@agent.tool_plain` for context-free tools (it raises otherwise)
 - Use `ctx.deps` to access injected dependencies
 
-#### Robust tool arguments across models:
-- **Reference**: `references/16_robust_tool_args.py`
-- Type choice-like parameters as inline `Literal[...]`, not as an `Enum` class.
-  An enum becomes `$ref` + `anyOf` in the JSON schema, and weaker models
-  (observed: `z-ai/glm-5.3` via OpenRouter, 2026-10-17) then send `null` for it
-  and loop on the retry.
-- Normalise before validation with `Annotated[Literal[...], BeforeValidator(clean)]`
-  where `clean` strips whitespace and quote characters and fixes the case.
-  Claude Sonnet 5.5 was observed sending `'"alive"'` (literal quotes) and
-  exhausting all retries on a plain `Literal`.
-- Convert the literal to your domain enum inside the tool (`Sex(value)`), so
-  the schema stays simple and the domain stays typed.
-- Make every `ModelRetry` message actionable: say what was received and give a
-  concrete correct call, e.g. `"every field you passed was null. Example:
-  update_person(person='p1', age=40)"`. A bare "invalid input" makes small
-  models repeat the same call until `retries` is exhausted.
-- Keep `retries=3` on the Agent; when the retries are exhausted the run raises
-  `UnexpectedModelBehavior` - catch it at the application boundary.
-
 #### Validators (output_type):
 - **Reference**: `references/04_validators.py`
 - Use Pydantic models to enforce structured output
@@ -139,12 +120,10 @@ Logfire is a platform tightly integrated with Pydantic AI for debugging and obse
 - **Tracing**: Visualize agent execution flow
 
 #### Setup:
-1. Get a **write token** from https://logfire.pydantic.dev/ (project settings)
-2. Set `LOGFIRE_TOKEN` in your `.env` file. The SDK only auto-reads
-   `LOGFIRE_TOKEN`; if your project uses another name (e.g. `LOGFIRE_API_KEY`)
-   pass it explicitly: `logfire.configure(token=os.getenv("LOGFIRE_API_KEY"))`
-3. Configure: `logfire.configure(send_to_logfire="if-token-present", token=token)`
-   (safe without a token: nothing is sent, tests stay offline)
+1. Get API key from https://logfire.pydantic.dev/
+2. Set `LOGFIRE_API_KEY` in your `.env` file (the SDK auto-reads only
+   `LOGFIRE_TOKEN`, so pass the key explicitly)
+3. Configure: `logfire.configure(token=LOGFIRE_API_KEY)`
 4. Instrument: `logfire.instrument_pydantic_ai()` - traces every agent run,
    model request, and tool call automatically
 
@@ -160,16 +139,14 @@ with logfire.span('Calling Agent') as span:
     logfire.info('{result=}', result=result.output)
 ```
 
-#### Reading traces back (debugging failed tool calls):
-- A write token cannot query (`401 Invalid token`). Create a **read token**
-  in the project settings and keep it as `LOGFIRE_READ_TOKEN`.
-- `LogfireQueryClient(read_token=...)` runs SQL against the `records` table;
-  `query_json_rows(sql, min_timestamp=...)` requires `min_timestamp`.
-- Useful columns: `start_timestamp`, `span_name`, `message`, `level`,
-  `is_exception`, `exception_message`, and `attributes->>'gen_ai.tool.name'`,
-  `attributes->>'tool_arguments'` for tool calls. Filter failed tool calls with
-  `WHERE is_exception OR level >= 17`.
-- See `example_query_recent_errors()` in `references/07_logfire.py`.
+#### Reading Traces Back:
+- Needs a **read token** (project settings → Read tokens, `LOGFIRE_READ_TOKEN`);
+  the write token is rejected with `401`.
+- `LogfireQueryClient(read_token=...).query_json_rows(sql, min_timestamp=...)`
+  runs SQL against the `records` table. Failed tool calls:
+  `WHERE is_exception OR level >= 17`; tool name and arguments are in
+  `attributes->>'gen_ai.tool.name'` and `attributes->>'tool_arguments'`.
+- See `query_recent_errors()` in `references/07_logfire.py`.
 
 ### 5. Advanced Patterns
 

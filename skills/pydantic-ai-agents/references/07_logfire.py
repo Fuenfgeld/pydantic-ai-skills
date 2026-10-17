@@ -4,9 +4,7 @@ Logfire is a platform that helps you debug Agent systems through logging, tracin
 It is tightly integrated with Pydantic AI and provides detailed insights into agent execution.
 
 Prerequisites:
-- Set LOGFIRE_API_KEY in your .env file (get from https://logfire.pydantic.dev/).
-  Note: the SDK auto-reads only LOGFIRE_TOKEN, so this file passes the key explicitly.
-- Optional: LOGFIRE_READ_TOKEN (a separate *read* token) to query traces back.
+- Set LOGFIRE_API_KEY in your .env file (get from https://logfire.pydantic.dev/)
 - Install required packages: logfire, pydantic-ai
 """
 
@@ -121,20 +119,11 @@ if __name__ == "__main__":
     print("\nCheck your Logfire dashboard at https://logfire.pydantic.dev/ to see the traces!")
 
 
-# --- Reading traces back: find failed tool calls from the terminal ---
-"""
-A write token only sends data; querying needs a read token (project settings ->
-Read tokens). The query client speaks SQL over the `records` table.
-"""
+# --- Reading traces back (needs a *read* token, not the write token) ---
 
 
-def example_query_recent_errors(read_token: str, minutes: int = 60) -> list[dict]:
-    """Return the most recent exception records (e.g. failed tool calls).
-
-    Args:
-        read_token: A Logfire *read* token (LOGFIRE_READ_TOKEN), not the write token.
-        minutes: How far back to look.
-    """
+def query_recent_errors(read_token: str, minutes: int = 60) -> list[dict]:
+    """Most recent exception records, e.g. failed tool calls with their arguments."""
     from datetime import UTC, datetime, timedelta
 
     from logfire.query_client import LogfireQueryClient
